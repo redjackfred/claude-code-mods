@@ -1,6 +1,6 @@
 {
   "name": "model-router",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Runs Explore subagents on haiku and general-purpose ones on sonnet unless a model was asked for",
   "author": {
     "name": "redjackfred"

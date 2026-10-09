@@ -11,11 +11,12 @@ export type Rule = {
 // matched against the whole Bash command, so chained commands are caught too
 const BROAD = String.raw`(\/|\/\*|~|~\/|~\/\*|\$HOME|\$HOME\/\*?|\*|\.|\.\.|\.\/\*?)`
 export const RULES: Rule[] = [
-  { re: new RegExp(String.raw`\brm\s+(-[a-zA-Z]*r[a-zA-Z]*\s+|-[a-zA-Z]*f[a-zA-Z]*\s+|--recursive\s+|--force\s+)+${BROAD}(\s|;|&|\||$)`),
+  { re: new RegExp(String.raw`\brm\s+(-[a-zA-Z]*r[a-zA-Z]*\s+|-[a-zA-Z]*f[a-zA-Z]*\s+|--recursive\s+|--force\s+)+["']?${BROAD}["']?(\s|;|&|\||$)`),
     id: 'rm-broad', level: 'CRITICAL', text: {
       en: { name: 'Broad rm -rf', impact: 'Recursively deletes the root, home or a wildcard path; cannot be undone', safer: 'Name exact paths, or ls first; use trash to move files to the Trash' },
       zh: { name: 'rm -rf 大範圍刪除', impact: '遞迴刪除根目錄、家目錄或萬用字元路徑，無法復原', safer: '指定精確路徑，或先 ls 確認再刪；改用 trash 移到垃圾桶' } } },
-  { re: /\bgit\s+push\b(?=.*\s(--force(?!-with-lease)|-f)\b)/,
+  // --force, -f in any flag cluster (-fu), or a +refspec
+  { re: /\bgit\s+push\b(?=.*\s(--force(?!-with-lease)\b|-[a-zA-Z]*f[a-zA-Z]*\b|\+\S))/,
     id: 'git-push-force', level: 'HIGH', text: {
       en: { name: 'git push --force', impact: 'Overwrites remote history and can erase other people\'s commits', safer: 'git push --force-with-lease' },
       zh: { name: 'git push --force', impact: '覆寫遠端歷史，可能抹掉他人的 commit', safer: 'git push --force-with-lease' } } },
@@ -23,7 +24,8 @@ export const RULES: Rule[] = [
     id: 'git-reset-hard', level: 'HIGH', text: {
       en: { name: 'git reset --hard', impact: 'Discards every uncommitted change; cannot be undone', safer: 'git stash (keeps the changes; pop them back any time)' },
       zh: { name: 'git reset --hard', impact: '捨棄所有未提交的變更，無法復原', safer: 'git stash（保留變更，可隨時 pop 回來）' } } },
-  { re: /\bgit\s+clean\s+-[a-zA-Z]*f/,
+  // a dry run (-n, --dry-run) deletes nothing
+  { re: /\bgit\s+clean\b(?!.*\s(-[a-zA-Z]*n[a-zA-Z]*|--dry-run)\b)(?=.*\s-[a-zA-Z]*f)/,
     id: 'git-clean', level: 'HIGH', text: {
       en: { name: 'git clean -f', impact: 'Deletes every untracked file', safer: 'git clean -n to preview what would go' },
       zh: { name: 'git clean -f', impact: '刪除所有未追蹤的檔案', safer: 'git clean -n 先預覽要刪的檔案' } } },
@@ -35,7 +37,8 @@ export const RULES: Rule[] = [
     id: 'mkfs', level: 'CRITICAL', text: {
       en: { name: 'mkfs format', impact: 'Formats a disk partition and destroys its data', safer: 'Check the device (diskutil list), then run it yourself' },
       zh: { name: 'mkfs 格式化', impact: '格式化磁碟分割區，資料全毀', safer: '確認裝置代號（diskutil list）後由你手動執行' } } },
-  { re: /\bdd\b.*\bof=\/dev\//,
+  // writing to the null / zero / std streams is harmless
+  { re: /\bdd\b.*\bof=\/dev\/(?!(null|zero|stdout|stderr)\b)/,
     id: 'dd-device', level: 'CRITICAL', text: {
       en: { name: 'dd to a device', impact: 'Overwrites a disk device directly', safer: 'Check the of= device, then run it yourself' },
       zh: { name: 'dd 寫入裝置', impact: '直接覆寫磁碟裝置', safer: '確認 of= 的裝置代號後由你手動執行' } } },

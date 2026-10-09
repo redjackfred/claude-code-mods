@@ -5,6 +5,8 @@ export type AgentRun = {
   start: number
   end?: number
   tools: number
+  // what the subagent runs on, as agent.spawn answered: an alias or a full id
+  model?: string
   lastTool?: string
   failed?: boolean
 }

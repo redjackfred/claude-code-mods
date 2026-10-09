@@ -44,6 +44,12 @@ export const cells = (pct: number, frame: number, base: string, shine: boolean) 
   })
 }
 
+// `claude-sonnet-5-5` → `sonnet 5.5`, `haiku` → `haiku`; anything else as given
+export const shortModel = (model: string) => {
+  const m = /(haiku|sonnet|opus|fable)(?:-(\d+)-(\d+))?/i.exec(model)
+  return m ? (m[2] ? `${m[1]!.toLowerCase()} ${m[2]}.${m[3]}` : m[1]!.toLowerCase()) : model
+}
+
 let timer: Timer | undefined
 
 const tick = ($: EngineInterface) => {
@@ -87,7 +93,7 @@ export const register: Register = on => {
     const res = await next(e)
     if ('agentId' in res && res.agentId) {
       const t = await $.clock.now()
-      const run: AgentRun = { id: res.agentId, type: e.subagentType, desc: e.description, start: t, tools: 0 }
+      const run: AgentRun = { id: res.agentId, type: e.subagentType, desc: e.description, start: t, tools: 0, model: res.model ? shortModel(res.model) : undefined }
       await update($, now, () => t)
       await update($, runs, l => [...l.filter(r => r.id !== run.id), run])
       tick($)
@@ -143,6 +149,7 @@ export const register: Register = on => {
     const shown = list.slice(-Math.max(1, e.props.maxRows - 1))
     // pad every row's variable-width parts to the widest so separators line up
     const typeW = Math.max(...shown.map(r => r.type.length))
+    const modelW = Math.max(...shown.map(r => r.model?.length ?? 0))
     const toolW = Math.max(...shown.map(r => (r.end === undefined && r.lastTool ? r.lastTool.length + 3 : 0)))
 
     // other mods' bands (pomodoro, ...) stack underneath
@@ -164,6 +171,7 @@ export const register: Register = on => {
             <Text key={r.id} wrap="truncate-end">
               {chain([
                 [accent, C.base, <Text bold> {icon} {ROBOT} {r.type.padEnd(typeW)} </Text>],
+                ...(modelW > 0 ? [[C.surface, accent, <Text> {(r.model ?? '').padEnd(modelW)} </Text>] as [string, string, RenderChildren]] : []),
                 [C.overlay, C.text, <Text> {bar} <Text color={barBase} bold>{String(pct).padStart(3)}%</Text> </Text>],
                 [C.base, C.text, <Text> {TIMER} {String(secs).padStart(3)}s {WRENCH} {String(r.tools).padStart(2)}<Text color={C.sub}>{tool}</Text> </Text>],
               ])}

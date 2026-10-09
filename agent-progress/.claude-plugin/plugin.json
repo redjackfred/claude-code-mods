@@ -1,6 +1,6 @@
 {
   "name": "agent-progress",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Live progress bars for running subagents above the prompt",
   "types": "./types/index.d.ts",
   "author": {

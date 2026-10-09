@@ -5,9 +5,9 @@ A few mods for [Claude Code](https://claude.com/claude-code), packaged as a plug
 | Mod | What it does |
 |-----|--------------|
 | **pomodoro** | A pixel-art pomodoro timer in a side pane. Day and night skies, animated sun, clouds, stars and meteors, a grass field and a daily tomato tally. Toast and chime when a phase ends. |
-| **agent-progress** | Live Powerline-style progress bars for running subagents, with a moving glint. |
+| **agent-progress** | Live Powerline-style progress bars for running subagents, with a moving glint and the model each one runs on. |
 | **cmd-guard** | Stops destructive shell commands (`rm -rf` on `/`, `~` or `*`, force pushes, hard resets, dropping tables, `mkfs`, `dd`…) and asks what to do: refuse, allow once, trust for this session, or use a safer alternative. |
-| **model-router** | Runs Explore subagents on haiku and general-purpose subagents on sonnet to save cost. An explicit `model` on the Agent call always wins; forks and workflows are left alone. |
+| **model-router** | Runs Explore subagents on haiku and general-purpose subagents on sonnet to save cost. An explicit `model` on the Agent call always wins; forks and workflows are left alone. Optionally lets [Jev](https://typesafe.ai) pick the model per task. |
 
 <p align="center">
   <img src="docs/pomodoro-focus.png" alt="Pomodoro focus mode: day sky with sun and clouds" width="280">
@@ -69,6 +69,21 @@ A model-router mod runs Explore subagents on haiku and general-purpose ones on s
 unless the Agent call names a model. For complex reasoning, large refactors, or
 hard-to-find bugs, pass `model: "opus"` on the Agent call.
 ```
+
+#### Optional: let Jev pick the model
+
+[Jev](https://typesafe.ai) is a fast "System One" decision model. With it on, each general-purpose subagent's task is classified as haiku, sonnet or opus work before it starts. In a quick test it took about 0.7 s per call and costs well under a cent.
+
+```sh
+export TYPESAFE_API_KEY=...   # then restart Claude Code
+/router jev on                # /router jev off to stop
+```
+
+- **Privacy:** it's off by default because turning it on sends each general-purpose task (its description plus the first 4000 characters of the prompt) to TypeSafe's API.
+- **Confidence:** Jev's pick is used only when its confidence is at least 0.8.
+- **Fallback:** if Jev is slow (over 1.5 s), fails, or isn't sure, the subagent falls back to sonnet.
+- **Explore subagents** always stay on haiku.
+- **Toast:** shows Jev's pick, e.g. `general-purpose → haiku · jev 1.00`.
 
 ## Development
 
