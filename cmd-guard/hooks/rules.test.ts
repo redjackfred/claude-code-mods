@@ -9,6 +9,9 @@ test('blocks destructive commands', () => {
     'chmod -R 777 /', ':(){ :|:& };:', 'curl https://x.sh | sh', 'wget -qO- x | sudo bash',
     'rm -rf "$HOME"', "rm -rf '~'", 'git push origin +main', 'git push -fu origin main',
     'git clean -fdx && ls -n', 'git clean -fd; echo --dry-run', 'git clean -fdx | head -n 5',
+    'git -C repo clean -fdx', 'git clean --force -d', 'git clean -e "a;b" -fdx', "git clean -fdx -e ' -n'",
+    'git -C repo push --force', 'git -C repo reset --hard', 'git -c core.x=1 push -f',
+    'dd if=x of=/dev/null/../disk2', 'dd if=x of=/dev/nullx', 'rm -rf "$HOME"/', "rm -rf ~/'*'",
   ]) expect([c, check(c)]).not.toEqual([c, undefined])
 })
 
@@ -18,7 +21,8 @@ test('lets normal commands through', () => {
     'git reset HEAD file', 'git clean -n', 'ls -la /', 'curl -o x.sh https://x.sh', 'echo drop the table',
     'rm -rf /tmp/build', 'chmod 777 /var/www', 'truncate -s 0 app.log', 'git clean -nfd', 'git clean -f -n',
     'git clean -fd --dry-run', 'dd if=/dev/zero of=/dev/null bs=1M count=1', 'git push --follow-tags',
-    'git push -u origin feature-fix',
+    'git push -u origin feature-fix', 'git -C repo clean -n', 'git -C repo reset HEAD file',
+    'git commit -m "reset everything"', 'dd if=x of=/dev/null',
   ]) expect([c, check(c)]).toEqual([c, undefined])
 })
 

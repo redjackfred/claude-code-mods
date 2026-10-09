@@ -58,6 +58,8 @@ Works automatically; `/guard off` turns it off for the session and `/guard on` b
 
 The dialog speaks the language you mostly write in during the session: English, or Traditional Chinese (繁體中文).
 
+It matches commands with regexes, not a shell parser, so treat it as a seatbelt against slips rather than a sandbox: a determined command can still get past it. It also can't tell running a command from mentioning one, so a commit message or heredoc that only quotes a risky command gets stopped too. Reword the text, or `/guard off` for a moment.
+
 ### model-router
 
 <img src="docs/model-router.png" alt="model-router toasts: Explore routed to haiku, general-purpose to sonnet" width="360">
