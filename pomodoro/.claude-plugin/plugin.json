@@ -1,0 +1,10 @@
+{
+  "name": "pomodoro",
+  "version": "0.1.0",
+  "description": "Pixel-art pomodoro timer in a side pane: /focus [minutes]",
+  "types": "./types/index.d.ts",
+  "author": {
+    "name": "redjackfred"
+  },
+  "license": "MIT"
+}

@@ -1,0 +1,31 @@
+{
+  "name": "claude-code-mods",
+  "owner": {
+    "name": "redjackfred"
+  },
+  "metadata": {
+    "description": "Claude Code mods: pixel-art pomodoro, subagent progress bars, a command guard and a cost-saving model router"
+  },
+  "plugins": [
+    {
+      "name": "pomodoro",
+      "source": "./pomodoro",
+      "description": "Pixel-art pomodoro timer in a side pane: /focus [minutes]"
+    },
+    {
+      "name": "agent-progress",
+      "source": "./agent-progress",
+      "description": "Live progress bars for running subagents above the prompt"
+    },
+    {
+      "name": "cmd-guard",
+      "source": "./cmd-guard",
+      "description": "Asks before running destructive shell commands: recursive deletes, force pushes, dropping tables"
+    },
+    {
+      "name": "model-router",
+      "source": "./model-router",
+      "description": "Runs Explore subagents on haiku and general-purpose ones on sonnet unless a model was asked for"
+    }
+  ]
+}
