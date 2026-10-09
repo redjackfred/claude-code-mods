@@ -60,7 +60,9 @@ The dialog speaks the language you mostly write in during the session: English, 
 
 ### model-router
 
-Works automatically. To steer the main agent, you can add this to your `~/.claude/CLAUDE.md`:
+<img src="docs/model-router.png" alt="model-router toasts: Explore routed to haiku, general-purpose to sonnet" width="360">
+
+Works automatically and shows a toast for each subagent it reroutes. To steer the main agent, you can add this to your `~/.claude/CLAUDE.md`:
 
 ```md
 A model-router mod runs Explore subagents on haiku and general-purpose ones on sonnet
