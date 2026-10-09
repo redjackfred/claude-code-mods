@@ -1,74 +1,67 @@
 import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
-import { check } from './rules'
-import type { Rule } from './rules'
+import { check, langOf } from './rules'
+import type { Lang, Rule } from './rules'
 
 // session-only on purpose: the guard comes back on, and forgets allowances, in every new session
 const off = atom({ plugin: 'cmd-guard', key: 'off' } as const, false)
 const allowed = atom({ plugin: 'cmd-guard', key: 'allowed' } as const, [])
+// how many of the session's prompts were in each language; the dialog speaks the majority's
+const prompts = atom({ plugin: 'cmd-guard', key: 'prompts' } as const, { en: 0, zh: 0, last: 'en' })
 
-const BLOCK = '拒絕執行（建議）'
-const ONCE = '僅允許此次'
-const SESSION = '本工作階段信任此類'
-const SAFER = '改用安全替代方案'
+type Choice = 'block' | 'once' | 'session' | 'safer'
+const CHOICES: Choice[] = ['block', 'once', 'session', 'safer']
+const UI = {
+  en: {
+    labels: { block: 'Block (recommended)', once: 'Allow once', session: 'Trust for this session', safer: 'Use the safer alternative' },
+    impact: 'Impact', safer: 'Instead', ask: 'What should happen?',
+    allowedOnce: 'Allowed once', trusted: 'Trusted for this session', blocked: 'Blocked',
+  },
+  zh: {
+    labels: { block: '拒絕執行（建議）', once: '僅允許此次', session: '本工作階段信任此類', safer: '改用安全替代方案' },
+    impact: '影響', safer: '替代', ask: '要如何處理？',
+    allowedOnce: '已放行一次', trusted: '本工作階段信任', blocked: '已攔截',
+  },
+} as const
 
-const OUTCOME: Record<string, string> = {
-  [BLOCK]: '指令不會執行，Claude 會停下來詢問你下一步。',
-  [ONCE]: '只執行這一次，下次遇到同類指令仍會攔截。',
-  [SESSION]: '本工作階段內同類指令全部放行，/guard on 可撤銷。',
-  [SAFER]: '指令不會執行，Claude 會改用下方建議的做法並先說明。',
-}
+export const sessionLang = (p: { en: number; zh: number; last: string }): Lang =>
+  p.zh > p.en ? 'zh' : p.en > p.zh ? 'en' : p.last === 'zh' ? 'zh' : 'en'
 
-export const card = (rule: Rule, command: string, choice: string) => {
-  const meter = rule.level === 'CRITICAL' ? '■■■■■' : '■■■■□'
-  const cmd = command.length > 200 ? `${command.slice(0, 197)}...` : command
-  const line = '─'.repeat(44)
+export const question = (rule: Rule, command: string, lang: Lang) => {
+  const t = rule.text[lang]
+  const ui = UI[lang]
+  const cmd = command.length > 120 ? `${command.slice(0, 117)}...` : command
   return [
-    `╭─ 🛡  CMD-GUARD · 風險評估 ${line.slice(22)}`,
-    `│  風險等級   ${meter}  ${rule.level}`,
-    `│  觸發規則   ${rule.name}`,
-    `│  可能影響   ${rule.impact}`,
-    `├─ 指令 ${line.slice(5)}`,
-    ...cmd.split('\n').map(l => `│  $ ${l}`),
-    `├─ 安全替代 ${line.slice(9)}`,
-    `│  ${rule.safer}`,
-    `├─ 選擇後 ${line.slice(7)}`,
-    `│  ${OUTCOME[choice]}`,
-    `╰${line}`,
+    `🛡 ${rule.level} · ${t.name}`,
+    `$ ${cmd}`,
+    `${ui.impact}: ${t.impact}`,
+    `${ui.safer}: ${t.safer}`,
+    ui.ask,
   ].join('\n')
 }
 
-// ask in the engine's own dialog; anything but an explicit choice blocks
-const ask = async ($: Parameters<Parameters<Register>[0]>[2] extends never ? never : any, rule: Rule, command: string) => {
-  const question = `偵測到高風險指令「${rule.name}」，要如何處理？`
-  const opt = (label: string, description: string) => ({ label, description, preview: card(rule, command, label) })
+// ask in the engine's own dialog; anything but an explicit choice blocks.
+// Returns the choice, or the text the user typed under "Other".
+const ask = async ($: Parameters<Parameters<Register>[0]>[2] extends never ? never : any, rule: Rule, command: string, lang: Lang): Promise<Choice | string> => {
+  const labels = UI[lang].labels
   try {
-    const ran = await $.tool.call({
-      tool: 'AskUserQuestion',
-      questions: [{
-        question,
-        header: `🛡 ${rule.level}`,
-        multiSelect: false,
-        options: [
-          opt(BLOCK, '封鎖此指令，由你決定下一步'),
-          opt(ONCE, '確認無誤，僅放行這一次'),
-          opt(SESSION, `本工作階段不再攔截「${rule.name}」`),
-          opt(SAFER, `請 Claude 改用：${rule.safer}`),
-        ],
-      }],
-    })
-    if (ran.deny !== undefined || ran.isError || !ran.result || ran.result.afkTimeoutMs) return BLOCK
-    const answers = ran.result.answers as Record<string, string>
-    return answers[question] ?? ran.result.response ?? BLOCK
+    const answer: string = await $.ui.ask(question(rule, command, lang), { header: '🛡 cmd-guard', options: CHOICES.map(c => labels[c]) })
+    return CHOICES.find(c => labels[c] === answer) ?? answer
   } catch {
-    return BLOCK // dismissed, or nobody to ask
+    return 'block' // dismissed, or nobody to ask
   }
 }
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await $.command.register({ name: 'guard', description: 'Toggle the destructive-command guard for this session (on | off)' })
+    return next(e)
+  })
+
+  on('prompt.submit', async ($, e, next) => {
+    const lang = langOf(e.text)
+    await update($, prompts, p => ({ ...p, [lang]: p[lang] + 1, last: lang }))
     return next(e)
   })
 
@@ -83,26 +76,31 @@ export const register: Register = on => {
 
   on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
     const rule = check(e.command)
-    if (!rule || (await read($, off)) || (await read($, allowed)).includes(rule.name)) return next(e)
+    if (!rule || (await read($, off)) || (await read($, allowed)).includes(rule.id)) return next(e)
 
-    const answer = await ask($, rule, e.command)
+    const lang = sessionLang(await read($, prompts))
+    const ui = UI[lang]
+    const name = rule.text[lang].name
+    const answer = await ask($, rule, e.command, lang)
 
-    if (answer === ONCE) {
-      $.ui.toast(`🛡 已放行一次 · ${rule.name}`)
+    if (answer === 'once') {
+      $.ui.toast(`🛡 ${ui.allowedOnce} · ${name}`)
       return next(e)
     }
-    if (answer === SESSION) {
-      await update($, allowed, l => [...l, rule.name])
-      $.ui.toast(`🛡 本工作階段信任 · ${rule.name}`)
+    if (answer === 'session') {
+      await update($, allowed, l => [...l, rule.id])
+      $.ui.toast(`🛡 ${ui.trusted} · ${name}`)
       return next(e)
     }
-    $.ui.toast(`🛡 已攔截 · ${rule.name}`)
-    if (answer === SAFER) {
-      return { deny: `cmd-guard: the user blocked this command (${rule.name}: ${rule.impact}) and wants the safer alternative: ${rule.safer}. Explain the alternative briefly, then use it.` }
+    $.ui.toast(`🛡 ${ui.blocked} · ${name}`)
+    // the model reads English either way
+    const { name: en, impact, safer } = rule.text.en
+    if (answer === 'safer') {
+      return { deny: `cmd-guard: the user blocked this command (${en}: ${impact}) and wants the safer alternative: ${safer}. Explain the alternative briefly, then use it.` }
     }
-    if (answer !== BLOCK) {
-      return { deny: `cmd-guard: the user blocked this command (${rule.name}) and said: ${answer}` }
+    if (answer !== 'block') {
+      return { deny: `cmd-guard: the user blocked this command (${en}) and said: ${answer}` }
     }
-    return { deny: `cmd-guard: the user blocked this command (${rule.name}: ${rule.impact}). Do not retry it; ask the user how to proceed.` }
+    return { deny: `cmd-guard: the user blocked this command (${en}: ${impact}). Do not retry it; ask the user how to proceed.` }
   }).catch(($, e, next) => (next.called ? next(e) : { deny: 'cmd-guard: its check failed, so the command was blocked.' }))
 }

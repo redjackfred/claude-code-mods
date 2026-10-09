@@ -52,9 +52,11 @@ Install only the ones you want. Restart Claude Code afterwards.
 
 ### cmd-guard
 
-<img src="docs/cmd-guard.png" alt="cmd-guard toast after blocking a broad rm -rf" width="420">
+![cmd-guard asking what to do with a broad rm -rf](docs/cmd-guard.png)
 
 Works automatically; `/guard off` turns it off for the session and `/guard on` back on. When nobody answers the prompt (or it fails), the command is blocked.
+
+The dialog speaks the language you mostly write in during the session: English, or Traditional Chinese (繁體中文).
 
 ### model-router
 

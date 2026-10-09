@@ -1,5 +1,5 @@
 import { test, expect } from 'claude-code/testing'
-import { check } from './rules'
+import { check, langOf, RULES } from './rules'
 
 test('blocks destructive commands', () => {
   for (const c of [
@@ -15,4 +15,16 @@ test('lets normal commands through', () => {
     'rm -rf node_modules', 'rm -rf ./dist', 'rm file.txt', 'git push', 'git push --force-with-lease',
     'git reset HEAD file', 'git clean -n', 'ls -la /', 'curl -o x.sh https://x.sh', 'echo drop the table',
   ]) expect([c, check(c)]).toEqual([c, undefined])
+})
+
+test('tells a prompt\'s language', () => {
+  expect(langOf('幫我測試 cmd-guard')).toBe('zh')
+  expect(langOf('繼續')).toBe('zh')
+  expect(langOf('please test the cmd-guard mod')).toBe('en')
+  expect(langOf('ok')).toBe('en')
+  expect(langOf('')).toBe('en')
+})
+
+test('every rule speaks both languages', () => {
+  for (const r of RULES) for (const t of [r.text.en, r.text.zh]) expect([r.id, !!(t.name && t.impact && t.safer)]).toEqual([r.id, true])
 })
