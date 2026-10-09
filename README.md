@@ -6,8 +6,8 @@ A few mods for [Claude Code](https://claude.com/claude-code), packaged as a plug
 |-----|--------------|
 | **pomodoro** | A pixel-art pomodoro timer in a side pane. Day and night skies, animated sun, clouds, stars and meteors, a grass field and a daily tomato tally. Toast and chime when a phase ends. |
 | **agent-progress** | Live Powerline-style progress bars for running subagents, with a moving glint. |
-| **cmd-guard** | Stops destructive shell commands (recursive deletes, force pushes, dropping tables…) and asks what to do: refuse, allow once, trust for this session, or use a safer alternative. |
-| **model-router** | Runs Explore subagents on haiku and general-purpose subagents on sonnet to save cost. An explicit `model` on the Agent call always wins. |
+| **cmd-guard** | Stops destructive shell commands (`rm -rf` on `/`, `~` or `*`, force pushes, hard resets, dropping tables, `mkfs`, `dd`…) and asks what to do: refuse, allow once, trust for this session, or use a safer alternative. |
+| **model-router** | Runs Explore subagents on haiku and general-purpose subagents on sonnet to save cost. An explicit `model` on the Agent call always wins; forks and workflows are left alone. |
 
 <p align="center">
   <img src="docs/pomodoro-focus.png" alt="Pomodoro focus mode: day sky with sun and clouds" width="280">
@@ -46,11 +46,13 @@ Install only the ones you want. Restart Claude Code afterwards.
 
 ### agent-progress
 
+![agent-progress: three subagents running with Powerline progress bars](docs/agent-progress.png)
+
 `/agent-progress` toggles the bars on and off.
 
 ### cmd-guard
 
-Works automatically. When nobody answers the prompt (or it fails), the command is blocked.
+Works automatically; `/guard off` turns it off for the session and `/guard on` back on. When nobody answers the prompt (or it fails), the command is blocked.
 
 ### model-router
 
