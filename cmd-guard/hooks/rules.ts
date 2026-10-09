@@ -24,8 +24,9 @@ export const RULES: Rule[] = [
     id: 'git-reset-hard', level: 'HIGH', text: {
       en: { name: 'git reset --hard', impact: 'Discards every uncommitted change; cannot be undone', safer: 'git stash (keeps the changes; pop them back any time)' },
       zh: { name: 'git reset --hard', impact: '捨棄所有未提交的變更，無法復原', safer: 'git stash（保留變更，可隨時 pop 回來）' } } },
-  // a dry run (-n, --dry-run) deletes nothing
-  { re: /\bgit\s+clean\b(?!.*\s(-[a-zA-Z]*n[a-zA-Z]*|--dry-run)\b)(?=.*\s-[a-zA-Z]*f)/,
+  // a dry run (-n, --dry-run) deletes nothing; flags are only read up to the
+  // next ; & | or newline, so a later command's -n can't pass for a dry run
+  { re: /\bgit\s+clean\b(?![^;&|\n]*\s(-[a-zA-Z]*n[a-zA-Z]*|--dry-run)\b)(?=[^;&|\n]*\s-[a-zA-Z]*f)/,
     id: 'git-clean', level: 'HIGH', text: {
       en: { name: 'git clean -f', impact: 'Deletes every untracked file', safer: 'git clean -n to preview what would go' },
       zh: { name: 'git clean -f', impact: '刪除所有未追蹤的檔案', safer: 'git clean -n 先預覽要刪的檔案' } } },
