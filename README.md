@@ -52,6 +52,8 @@ Install only the ones you want. Restart Claude Code afterwards.
 
 ### cmd-guard
 
+<img src="docs/cmd-guard.png" alt="cmd-guard toast after blocking a broad rm -rf" width="420">
+
 Works automatically; `/guard off` turns it off for the session and `/guard on` back on. When nobody answers the prompt (or it fails), the command is blocked.
 
 ### model-router
