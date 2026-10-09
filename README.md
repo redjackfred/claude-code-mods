@@ -9,6 +9,14 @@ A few mods for [Claude Code](https://claude.com/claude-code), packaged as a plug
 | **cmd-guard** | Stops destructive shell commands (recursive deletes, force pushes, dropping tables…) and asks what to do: refuse, allow once, trust for this session, or use a safer alternative. |
 | **model-router** | Runs Explore subagents on haiku and general-purpose subagents on sonnet to save cost. An explicit `model` on the Agent call always wins. |
 
+<p align="center">
+  <img src="docs/pomodoro-focus.png" alt="Pomodoro focus mode: day sky with sun and clouds" width="280">
+  &nbsp;
+  <img src="docs/pomodoro-break.png" alt="Pomodoro break mode: night sky with moon and stars" width="280">
+</p>
+
+<p align="center"><em>pomodoro — focus by day, break by night</em></p>
+
 ## Install
 
 ```sh
