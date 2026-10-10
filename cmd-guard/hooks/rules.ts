@@ -12,26 +12,30 @@ export type Rule = {
 // ponytail: regexes, not a shell parser; a guard against slips, not a sandbox
 const BROAD = String.raw`(\/|\/\*|~|~\/|~\/\*|\$HOME|\$HOME\/\*?|\*|\.|\.\.|\.\/\*?)`
 // `git`, then any global options (-C dir, -c key=value, --git-dir=...), then the subcommand
-const GIT = String.raw`\bgit(\s+(-[cC]\s+\S+|--[a-z-]+(=\S+)?))*\s+`
+const GIT = String.raw`\bgit(\s+(-[cC]\s+\S+|-[a-zA-Z]+|--(git-dir|work-tree|namespace|config-env)\s+\S+|--[a-z-]+(=\S+)?))*\s+`
+// git takes any unambiguous prefix of a long option: --fo is --force
 // the rest of one command: quoted strings whole, stopping at ; & | or newline
 const SEG = String.raw`([^;&|\n'"]|'[^']*'|"[^"]*")*`
+// leading options with no separate value: -e / --exclude take the next word, so they end the run
+const OPTS = String.raw`(\s+(-[a-zA-Z]*[a-df-zA-Z]|--(?!e)[a-z][a-z-]*|--[a-z-]+=\S+))*`
 export const RULES: Rule[] = [
   { re: new RegExp(String.raw`\brm\s+(-[a-zA-Z]*r[a-zA-Z]*\s+|-[a-zA-Z]*f[a-zA-Z]*\s+|--recursive\s+|--force\s+)+${BROAD}(\s|;|&|\||$)`),
     id: 'rm-broad', level: 'CRITICAL', text: {
       en: { name: 'Broad rm -rf', impact: 'Recursively deletes the root, home or a wildcard path; cannot be undone', safer: 'Name exact paths, or ls first; use trash to move files to the Trash' },
       zh: { name: 'rm -rf 大範圍刪除', impact: '遞迴刪除根目錄、家目錄或萬用字元路徑，無法復原', safer: '指定精確路徑，或先 ls 確認再刪；改用 trash 移到垃圾桶' } } },
   // --force, -f in any flag cluster (-fu), or a +refspec
-  { re: new RegExp(String.raw`${GIT}push\b(?=.*\s(--force(?!-with-lease)\b|-[a-zA-Z]*f[a-zA-Z]*\b|\+\S))`),
+  { re: new RegExp(String.raw`${GIT}push\b(?=.*\s(--f(o(r(ce?)?)?)?(?![\w-])|-[a-zA-Z]*f[a-zA-Z]*\b|\+\S))`),
     id: 'git-push-force', level: 'HIGH', text: {
       en: { name: 'git push --force', impact: 'Overwrites remote history and can erase other people\'s commits', safer: 'git push --force-with-lease' },
       zh: { name: 'git push --force', impact: '覆寫遠端歷史，可能抹掉他人的 commit', safer: 'git push --force-with-lease' } } },
-  { re: new RegExp(String.raw`${GIT}reset\b${SEG}\s--hard\b`),
+  { re: new RegExp(String.raw`${GIT}reset\b${SEG}\s--h(a(rd?)?)?\b`),
     id: 'git-reset-hard', level: 'HIGH', text: {
       en: { name: 'git reset --hard', impact: 'Discards every uncommitted change; cannot be undone', safer: 'git stash (keeps the changes; pop them back any time)' },
       zh: { name: 'git reset --hard', impact: '捨棄所有未提交的變更，無法復原', safer: 'git stash（保留變更，可隨時 pop 回來）' } } },
-  // a dry run (-n, --dry-run) deletes nothing; flags are read only within this
-  // command (SEG), so a later command's -n can't pass for a dry run
-  { re: new RegExp(String.raw`${GIT}clean\b(?!${SEG}\s(-[a-zA-Z]*n[a-zA-Z]*|--dry-run)\b)(?=${SEG}\s(-[a-zA-Z]*f|--force\b))`),
+  // a dry run (-n, --dry-run) deletes nothing. It counts only among the leading
+  // options (OPTS), so a -n that is a path after --, an -e pattern, or in a later
+  // command can't pass for one
+  { re: new RegExp(String.raw`${GIT}clean\b(?!${OPTS}\s+(-[a-df-zA-Z]*n[a-zA-Z]*|--d(r(y(-(r(un?)?)?)?)?)?)(\s|;|&|\||$))(?=${SEG}\s(-[a-zA-Z]*f|--f(o(r(ce?)?)?)?\b))`),
     id: 'git-clean', level: 'HIGH', text: {
       en: { name: 'git clean -f', impact: 'Deletes every untracked file', safer: 'git clean -n to preview what would go' },
       zh: { name: 'git clean -f', impact: '刪除所有未追蹤的檔案', safer: 'git clean -n 先預覽要刪的檔案' } } },

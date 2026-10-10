@@ -1,6 +1,6 @@
 {
   "name": "cmd-guard",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Blocks destructive shell commands (rm -rf /, force push, DROP TABLE...)",
   "types": "./types/index.d.ts",
   "author": {
