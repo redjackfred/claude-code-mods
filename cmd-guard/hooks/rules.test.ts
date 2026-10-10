@@ -40,3 +40,12 @@ test('tells a prompt\'s language', () => {
 test('every rule speaks both languages', () => {
   for (const r of RULES) for (const t of [r.text.en, r.text.zh]) expect([r.id, !!(t.name && t.impact && t.safer)]).toEqual([r.id, true])
 })
+
+test('long runs of flags stay fast (no ReDoS)', () => {
+  for (const c of ['rm ' + '-rf '.repeat(40) + 'x', 'git ' + '-c '.repeat(60) + 'x', 'git ' + '--git-dir '.repeat(60) + 'x',
+    'git clean ' + '-x '.repeat(3000) + 'y', 'git push ' + 'a '.repeat(3000)]) {
+    const t = Date.now()
+    check(c)
+    expect(Date.now() - t).toBeLessThan(100)
+  }
+})

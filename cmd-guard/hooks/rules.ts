@@ -12,14 +12,17 @@ export type Rule = {
 // ponytail: regexes, not a shell parser; a guard against slips, not a sandbox
 const BROAD = String.raw`(\/|\/\*|~|~\/|~\/\*|\$HOME|\$HOME\/\*?|\*|\.|\.\.|\.\/\*?)`
 // `git`, then any global options (-C dir, -c key=value, --git-dir=...), then the subcommand
-const GIT = String.raw`\bgit(\s+(-[cC]\s+\S+|-[a-zA-Z]+|--(git-dir|work-tree|namespace|config-env)\s+\S+|--[a-z-]+(=\S+)?))*\s+`
+const GIT_VAL = '(git-dir|work-tree|namespace|config-env)'
+const GIT = String.raw`\bgit(\s+(-[cC]\s+\S+|-(?![cC]\s)[a-zA-Z]+|--${GIT_VAL}\s+\S+|--(?!${GIT_VAL}(\s|$))[a-z-]+(=\S+)?))*\s+`
+// every repeated group below must match a given word one way only: overlapping
+// alternatives backtrack exponentially (ReDoS) on a long run of flags
 // git takes any unambiguous prefix of a long option: --fo is --force
 // the rest of one command: quoted strings whole, stopping at ; & | or newline
 const SEG = String.raw`([^;&|\n'"]|'[^']*'|"[^"]*")*`
 // leading options with no separate value: -e / --exclude take the next word, so they end the run
 const OPTS = String.raw`(\s+(-[a-zA-Z]*[a-df-zA-Z]|--(?!e)[a-z][a-z-]*|--[a-z-]+=\S+))*`
 export const RULES: Rule[] = [
-  { re: new RegExp(String.raw`\brm\s+(-[a-zA-Z]*r[a-zA-Z]*\s+|-[a-zA-Z]*f[a-zA-Z]*\s+|--recursive\s+|--force\s+)+${BROAD}(\s|;|&|\||$)`),
+  { re: new RegExp(String.raw`\brm\s+(-(?=[a-zA-Z]*[rf])[a-zA-Z]+\s+|--(recursive|force)\s+)+${BROAD}(\s|;|&|\||$)`),
     id: 'rm-broad', level: 'CRITICAL', text: {
       en: { name: 'Broad rm -rf', impact: 'Recursively deletes the root, home or a wildcard path; cannot be undone', safer: 'Name exact paths, or ls first; use trash to move files to the Trash' },
       zh: { name: 'rm -rf 大範圍刪除', impact: '遞迴刪除根目錄、家目錄或萬用字元路徑，無法復原', safer: '指定精確路徑，或先 ls 確認再刪；改用 trash 移到垃圾桶' } } },
